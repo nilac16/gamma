@@ -49,15 +49,16 @@ if __name__ == "__main__":
         print("Supply a TPS and measurement DICOM")
         exit(1)
 
-    print(f"TPS dose max:      {np.max(tps.data)}")
-    print(f"{tps.matrix=}\n{tps.origin=}\n{tps.spacing=}\n{tps.data.shape}")
-    print(f"Measured dose max: {np.max(meas.data)}")
-    print(f"{meas.matrix=}\n{meas.origin=}\n{meas.spacing=}\n{meas.data.shape}")
+    #print(f"TPS dose max:      {np.max(tps.data)}")
+    #print(f"{tps.matrix=}\n{tps.origin=}\n{tps.spacing=}\n{tps.data.shape}")
+    #print(f"Measured dose max: {np.max(meas.data)}")
+    #print(f"{meas.matrix=}\n{meas.origin=}\n{meas.spacing=}\n{meas.data.shape}")
 
     t0 = time.time()
     res = gamma.compute(params, opts, tps, meas)
     t1 = time.time()
-    print(f"Passed:         {res.passed}\n"
+    print(f"{'RELATIVE DOSE' if params.relative else 'GLOBAL DOSE'}\n"
+          f"Passed:         {res.passed}\n"
           f"Total:          {res.total}\n"
           f"Rate:           {100.0 * float(res.passed) / float(res.total):.2f}%\n"
           f"Minimum:        {res.min}\n"

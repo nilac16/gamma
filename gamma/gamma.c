@@ -10,7 +10,7 @@ struct gamma_objective {
     const struct gamma_distribution *ref;       /* Reference dose */
     double                           ratio;     /* Criteria ratio */
     double                           mdose;     /* (Normalized) measured dose */
-    double                           rnorm;     /* Reference dose norm */
+    double                           rprop;     /* Reference dose normalizer */
     gamma_vec_t                      origin;    /* Measured dose origin */
 };
 
@@ -31,7 +31,7 @@ static double gamma_objective_evaluate(const gamma_vec_t *pos, void *data)
 
     dose = gamma_distribution_interp(obj->ref, pos);
     diff = gamma_vec_sub(pos, &obj->origin);
-    return gamma_sqr(obj->ratio * (dose / obj->rnorm - obj->mdose))
+    return gamma_sqr(obj->ratio * (dose / obj->rprop - obj->mdose))
         + gamma_vec_dp(&diff, &diff);
 }
 
@@ -71,7 +71,7 @@ static double gamma_pointwise(const struct gamma *gamma,
         .ref    = gamma->ref,
         .ratio  = gamma->parms->dta / gamma->parms->diff,
         .mdose  = mdose,
-        .rnorm  = 1.0,
+        .rprop  = 1.0,
         .origin = *pos,
     };
     struct gamma_psfunc func = {
@@ -81,7 +81,7 @@ static double gamma_pointwise(const struct gamma *gamma,
         .bases = bases
     };
     struct gamma_pspair pair;
-    double rdose;
+    double dnorm, rdose;
 
     /* Check if this point is even above threshold */
     rdose = gamma_distribution_interp(gamma->ref, pos);
@@ -92,18 +92,23 @@ static double gamma_pointwise(const struct gamma *gamma,
     switch (gamma->parms->norm) {
     case GAMMA_NORM_GLOBAL:
     default:
-        obj.ratio /= gamma->meas->max;
+        dnorm = gamma->meas->max;
         break;
     case GAMMA_NORM_LOCAL:
-        obj.ratio /= mdose;
+        dnorm = mdose;
         break;
     case GAMMA_NORM_ABSOLUTE:
-        obj.ratio /= 1.0;
+        dnorm = 1.0;
         break;
+    }
+    obj.ratio /= dnorm;
+
+    if (gamma->parms->rel) {
+        obj.rprop = gamma->meas->max / gamma->ref->max;
     }
 
     pair.vec = *pos;
-    pair.val = gamma_sqr(obj.ratio * (rdose / obj.rnorm - obj.mdose));
+    pair.val = gamma_sqr(obj.ratio * (rdose * obj.rprop - obj.mdose));
     gamma_pattern_search(&func, &pair, gamma->parms->dta, gamma->opts->shrinks);
     return sqrt(pair.val) / gamma->parms->dta;
 }
