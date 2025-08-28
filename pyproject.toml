@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "numpy < 2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gamma"
+version = "0.1"
+dependencies = ["numpy < 2"]
+
+[tool.setuptools]
+packages = ["gamma"]
+
+[[tool.setuptools.ext-modules]]
+name = "cgamma"
+sources = [
+    "gamma/module.c",
+    "gamma/gamma.c",
+    "gamma/psearch.c",
+    "gamma/distribution.c",
+    "gamma/mat.c",
+]
