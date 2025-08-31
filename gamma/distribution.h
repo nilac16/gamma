@@ -71,12 +71,15 @@ double gamma_distribution_interp(const struct gamma_distribution *dist,
  *      Physical coordinates of this dose value
  *  @param dose
  *      This dose value
+ *  @param idx
+ *      The index of this dose value in the main buffer
  *  @param data
  *      Your callback data
  *  @return true to continue, false to stop iterating
  */
 typedef void gamma_distribution_iterfn_t(const gamma_vec_t *pos,
                                          double             dose,
+                                         size_t             idx,
                                          void              *data);
 
 

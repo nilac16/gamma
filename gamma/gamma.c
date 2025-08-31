@@ -5,6 +5,23 @@
 #include "gamma.h"
 #include "psearch.h"
 
+#if _OPENMP
+#   include <threads.h>
+#   define ADD_MUTEX(name)  mtx_t name
+#   define MTX_INIT(mtx)    mtx_init(mtx, mtx_plain)
+#   define MTX_DESTROY(mtx) mtx_destroy(mtx)
+#   define MTX_LOCK(mtx)    mtx_lock(mtx)
+#   define MTX_UNLOCK(mtx)  mtx_unlock(mtx)
+
+#else
+#   define ADD_MUTEX(name)
+#   define MTX_INIT(mtx)
+#   define MTX_DESTROY(mtx)
+#   define MTX_LOCK(mtx)
+#   define MTX_UNLOCK(mtx)
+
+#endif
+
 
 struct gamma_objective {
     const struct gamma_distribution *ref;       /* Reference dose */
@@ -62,7 +79,7 @@ struct gamma {
     struct gamma_results            *res;       /* Results */
     double                           rthrsh;    /* Reference dose threshold */
     double                           mthrsh;    /* Measured dose threshold */
-    size_t                           idx;       /* Current point index */
+    ADD_MUTEX(mtx);
 };
 
 
@@ -140,20 +157,24 @@ static double gamma_pointwise(const struct gamma *gamma,
  *      The gamma context pointer
  *  @returns true
  */
-static void gamma_iterator(const gamma_vec_t *pos, double dose, void *data)
+static void gamma_iterator(const gamma_vec_t *pos,
+                           double             dose,
+                           size_t             idx,
+                           void              *data)
 {
     struct gamma *gamma = data;
     double value;
 
     value = gamma_pointwise(gamma, pos, dose);
     if (value != GAMMA_SIG) {
+        MTX_LOCK(&gamma->mtx);
         gamma->res->pass += value < 1.0;
         gamma_statistics_add(&gamma->res->stats, value);
+        MTX_UNLOCK(&gamma->mtx);
     }
     if (gamma->res->dist) {
-        gamma->res->dist[gamma->idx] = value;
+        gamma->res->dist[idx] = value;
     }
-    gamma->idx++;
 }
 
 
@@ -171,10 +192,13 @@ void gamma_compute(const struct gamma_params       *params,
         .res    = res,
         .rthrsh = params->thrsh * ref->max,
         .mthrsh = params->thrsh * meas->max,
-        .idx    = 0,
     };
+
+    MTX_INIT(&gamma.mtx);
 
     res->stats = gamma_statistics_init();
     res->pass = 0;
     gamma_distribution_foreach(meas, gamma_iterator, &gamma);
+
+    MTX_DESTROY(&gamma.mtx);
 }

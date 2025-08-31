@@ -143,12 +143,16 @@ void gamma_distribution_foreach(const struct gamma_distribution *dist,
     gamma_vec_t pos;
     size_t n = 0;
 
+#if _OPENMP
+#   pragma omp parallel for private(pos, i, j, n)
+#endif
     for (k = 0; k < dist->dims.idx[2]; k++) {
         for (j = 0; j < dist->dims.idx[1]; j++) {
             for (i = 0; i < dist->dims.idx[0]; i++) {
-                pos = gamma_matmul_mv(&dist->matrix,
-                                      &(const gamma_vec_t){{ i, j, k, 1 }});
-                func(&pos, dist->data[n++], data);
+                pos = (const gamma_vec_t){{ i, j, k, 1 }};
+                pos = gamma_matmul_mv(&dist->matrix, &pos);
+                n = i + dist->dims.idx[0] * (j + dist->dims.idx[1] * k);
+                func(&pos, dist->data[n], n, data);
             }
         }
     }
