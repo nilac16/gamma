@@ -135,7 +135,7 @@ double gamma_distribution_interp(const struct gamma_distribution *dist,
 }
 
 
-bool gamma_distribution_foreach(const struct gamma_distribution *dist,
+void gamma_distribution_foreach(const struct gamma_distribution *dist,
                                 gamma_distribution_iterfn_t     *func,
                                 void                            *data)
 {
@@ -148,11 +148,8 @@ bool gamma_distribution_foreach(const struct gamma_distribution *dist,
             for (i = 0; i < dist->dims.idx[0]; i++) {
                 pos = gamma_matmul_mv(&dist->matrix,
                                       &(const gamma_vec_t){{ i, j, k, 1 }});
-                if (!func(&pos, dist->data[n++], data)) {
-                    return false;
-                }
+                func(&pos, dist->data[n++], data);
             }
         }
     }
-    return true;
 }

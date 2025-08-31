@@ -75,7 +75,7 @@ double gamma_distribution_interp(const struct gamma_distribution *dist,
  *      Your callback data
  *  @return true to continue, false to stop iterating
  */
-typedef bool gamma_distribution_iterfn_t(const gamma_vec_t *pos,
+typedef void gamma_distribution_iterfn_t(const gamma_vec_t *pos,
                                          double             dose,
                                          void              *data);
 
@@ -87,10 +87,8 @@ typedef bool gamma_distribution_iterfn_t(const gamma_vec_t *pos,
  *      Iterator function
  *  @param data
  *      Iterator function data
- *  @returns true on completion, false if the callback requested early
- *      termination
  */
-bool gamma_distribution_foreach(const struct gamma_distribution *dist,
+void gamma_distribution_foreach(const struct gamma_distribution *dist,
                                 gamma_distribution_iterfn_t     *func,
                                 void                            *data);
 

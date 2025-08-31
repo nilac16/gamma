@@ -140,7 +140,7 @@ static double gamma_pointwise(const struct gamma *gamma,
  *      The gamma context pointer
  *  @returns true
  */
-static bool gamma_iterator(const gamma_vec_t *pos, double dose, void *data)
+static void gamma_iterator(const gamma_vec_t *pos, double dose, void *data)
 {
     struct gamma *gamma = data;
     double value;
@@ -154,7 +154,6 @@ static bool gamma_iterator(const gamma_vec_t *pos, double dose, void *data)
         gamma->res->dist[gamma->idx] = value;
     }
     gamma->idx++;
-    return true;
 }
 
 
