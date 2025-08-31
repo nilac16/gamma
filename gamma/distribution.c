@@ -1,15 +1,25 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <tgmath.h>
 #include "distribution.h"
 #include "interp.h"
 
 
-static size_t gamma_distribution_linearize(const struct gamma_distribution *dis,
-                                           const gamma_idx_t               *idx)
+/** @brief Linearize a multi-index
+ *  @param dist
+ *      Distribution
+ *  @param idx
+ *      Multi-index
+ *  @returns The index into the main data buffer, directly computed
+ *  @warning This function does no bounds nor wraparound (overflow) checks
+ */
+static uint64_t
+gamma_distribution_linearize(const struct gamma_distribution *dist,
+                             const gamma_idx_t               *idx)
 {
-    return (size_t)idx->idx[0] + dis->dims.idx[0]
-        * (idx->idx[1] + dis->dims.idx[1] * idx->idx[2]);
+    return (uint64_t)idx->idx[0] + (uint64_t)dist->dims.idx[0]
+        * (idx->idx[1] + (uint64_t)dist->dims.idx[1] * idx->idx[2]);
 }
 
 
@@ -41,9 +51,11 @@ double gamma_distribution_at(const struct gamma_distribution *dist,
                              const gamma_idx_t               *idx)
 {
     const gamma_idx_t zero = { 0 };
+    gamma_idx_t test;
     double res = 0.0;
 
-    if (gamma_idx_hittest(idx, &zero, &dist->dims)) {
+    test = gamma_idx_hittest(idx, &zero, &dist->dims);
+    if (!gamma_idx_any(&test)) {
         res = dist->data[gamma_distribution_linearize(dist, idx)];
     }
     return res;
@@ -73,36 +85,39 @@ static void gamma_distribution_corners(const struct gamma_distribution *dist,
                                        struct gamma_interp             *intr,
                                        const gamma_idx_t               *org)
 {
-    const gamma_idx_t xoffs = {{ 1, 0, 0, 0 }};
-    const gamma_idx_t yoffs = {{ 0, 1, 0, 0 }};
-    const gamma_idx_t xyoffs = {{ 1, 1, 0, 0 }};
-    gamma_idx_t idx, up;
+    static const gamma_idx_t zero = { 0 };
+    int64_t gather[8] = {
+        gamma_distribution_linearize(dist, org),
+        gather[0] + 1,
+        gather[0] + dist->dims.idx[0],
+        gather[2] + 1,
+        gather[0] + dist->dims.idx[0] * dist->dims.idx[1],
+        gather[4] + 1,
+        gather[4] + dist->dims.idx[0],
+        gather[6] + 1
+    };
+    gamma_idx_t ext, testlo, testhi;
 
-    up = gamma_idx_add(org, &(const gamma_idx_t){{ 0, 0, 1, 0 }});
+    ext = gamma_idx_add(org, &(const gamma_idx_t){{ 1, 1, 1, 0 }});
+    testlo = gamma_idx_hittest(org, &zero, &dist->dims);
+    testhi = gamma_idx_hittest(&ext, &zero, &dist->dims);
+    gather[0] |= testlo.idx[0] | testlo.idx[1] | testlo.idx[2];
+    gather[1] |= testhi.idx[0] | testlo.idx[1] | testlo.idx[2];
+    gather[2] |= testlo.idx[0] | testhi.idx[1] | testlo.idx[2];
+    gather[3] |= testhi.idx[0] | testhi.idx[1] | testlo.idx[2];
+    gather[4] |= testlo.idx[0] | testlo.idx[1] | testhi.idx[2];
+    gather[5] |= testhi.idx[0] | testlo.idx[1] | testhi.idx[2];
+    gather[6] |= testlo.idx[0] | testhi.idx[1] | testhi.idx[2];
+    gather[7] |= testhi.idx[0] | testhi.idx[1] | testhi.idx[2];
 
-    idx = *org;
-    intr->buf[0] = gamma_distribution_at(dist, &idx);
-
-    idx = gamma_idx_add(org, &xoffs);
-    intr->buf[1] = gamma_distribution_at(dist, &idx);
-
-    idx = gamma_idx_add(org, &yoffs);
-    intr->buf[2] = gamma_distribution_at(dist, &idx);
-
-    idx = gamma_idx_add(org, &xyoffs);
-    intr->buf[3] = gamma_distribution_at(dist, &idx);
-
-    idx = up;
-    intr->buf[4] = gamma_distribution_at(dist, &idx);
-
-    idx = gamma_idx_add(&up, &xoffs);
-    intr->buf[5] = gamma_distribution_at(dist, &idx);
-
-    idx = gamma_idx_add(&up, &yoffs);
-    intr->buf[6] = gamma_distribution_at(dist, &idx);
-
-    idx = gamma_idx_add(&up, &xyoffs);
-    intr->buf[7] = gamma_distribution_at(dist, &idx);
+    intr->buf[0] = gather[0] < 0 ? 0.0 : dist->data[gather[0]];
+    intr->buf[1] = gather[1] < 0 ? 0.0 : dist->data[gather[1]];
+    intr->buf[2] = gather[2] < 0 ? 0.0 : dist->data[gather[2]];
+    intr->buf[3] = gather[3] < 0 ? 0.0 : dist->data[gather[3]];
+    intr->buf[4] = gather[4] < 0 ? 0.0 : dist->data[gather[4]];
+    intr->buf[5] = gather[5] < 0 ? 0.0 : dist->data[gather[5]];
+    intr->buf[6] = gather[6] < 0 ? 0.0 : dist->data[gather[6]];
+    intr->buf[7] = gather[7] < 0 ? 0.0 : dist->data[gather[7]];
 }
 
 
