@@ -6,7 +6,7 @@
 #include "gamma.h"
 
 
-static bool gammapy_get_long(PyObject *obj, const char *attr, long *res)
+static bool gpy_get_long(PyObject *obj, const char *attr, long *res)
 {
     PyObject *ptr;
 
@@ -20,7 +20,7 @@ static bool gammapy_get_long(PyObject *obj, const char *attr, long *res)
 }
 
 
-static bool gammapy_get_double(PyObject *obj, const char *attr, double *res)
+static bool gpy_get_double(PyObject *obj, const char *attr, double *res)
 {
     PyObject *ptr;
 
@@ -34,7 +34,7 @@ static bool gammapy_get_double(PyObject *obj, const char *attr, double *res)
 }
 
 
-static bool gammapy_get_bool(PyObject *obj, const char *attr, bool *res)
+static bool gpy_get_bool(PyObject *obj, const char *attr, bool *res)
 {
     PyObject *ptr;
     int value;
@@ -50,10 +50,8 @@ static bool gammapy_get_bool(PyObject *obj, const char *attr, bool *res)
 }
 
 
-static bool gammapy_get_arrayf(PyObject   *obj,
-                               const char *attr,
-                               size_t      len,
-                               double      arr[])
+static bool gpy_get_arrayf(PyObject *obj, const char *attr,
+                           size_t    len, double      arr[])
 {
     PyObject *ptr;
     double *addr;
@@ -90,7 +88,7 @@ static bool gammapy_get_arrayf(PyObject   *obj,
 }
 
 
-static bool gammapy_load_norm(PyObject *obj, gamma_norm_t *norm)
+static bool gpy_load_norm(PyObject *obj, gamma_norm_t *norm)
 {
     const char *value;
     PyObject *ptr;
@@ -121,31 +119,31 @@ static bool gammapy_load_norm(PyObject *obj, gamma_norm_t *norm)
 }
 
 
-static bool gammapy_load_params(struct gamma_params *params, PyObject *obj)
+static bool gpy_load_params(struct gamma_params *params, PyObject *obj)
 {
-    return gammapy_get_double(obj, "diff", &params->diff)
-        && gammapy_get_double(obj, "dta", &params->dta)
-        && gammapy_get_double(obj, "threshold", &params->thrsh)
-        && gammapy_load_norm(obj, &params->norm)
-        && gammapy_get_bool(obj, "relative", &params->rel);
+    return gpy_get_double(obj, "diff", &params->diff)
+        && gpy_get_double(obj, "dta", &params->dta)
+        && gpy_get_double(obj, "threshold", &params->thrsh)
+        && gpy_load_norm(obj, &params->norm)
+        && gpy_get_bool(obj, "relative", &params->rel);
 }
 
 
-static bool gammapy_load_options(struct gamma_options *opts, PyObject *obj)
+static bool gpy_load_options(struct gamma_options *opts, PyObject *obj)
 {
-    return gammapy_get_bool(obj, "pass_only", &opts->pass_only)
-        && gammapy_get_long(obj, "pattern_shrinks", &opts->shrinks);
+    return gpy_get_bool(obj, "pass_only", &opts->pass_only)
+        && gpy_get_long(obj, "pattern_shrinks", &opts->shrinks);
 }
 
 
-static bool gammapy_load_distribution(struct gamma_distribution *dist,
-                                      PyObject                  *obj)
+static bool gpy_load_distribution(struct gamma_distribution *dist,
+                                  PyObject                  *obj)
 {
     PyObject *data;
     double buffer[9];
     npy_intp *dims;
 
-    if (!gammapy_get_arrayf(obj, "matrix", 9, buffer)) {
+    if (!gpy_get_arrayf(obj, "matrix", 9, buffer)) {
         return false;
     }
     dist->matrix.cols[0].vec[0] = buffer[0];
@@ -163,7 +161,7 @@ static bool gammapy_load_distribution(struct gamma_distribution *dist,
     dist->matrix.cols[2].vec[2] = buffer[8];
     dist->matrix.cols[2].vec[3] = 0.0;
 
-    if (!gammapy_get_arrayf(obj, "origin", 3, buffer)) {
+    if (!gpy_get_arrayf(obj, "origin", 3, buffer)) {
         return false;
     }
     dist->matrix.cols[3].vec[0] = buffer[0];
@@ -171,7 +169,7 @@ static bool gammapy_load_distribution(struct gamma_distribution *dist,
     dist->matrix.cols[3].vec[2] = buffer[2];
     dist->matrix.cols[3].vec[3] = 1.0;
 
-    if (!gammapy_get_arrayf(obj, "spacing", 3, buffer)) {
+    if (!gpy_get_arrayf(obj, "spacing", 3, buffer)) {
         return false;
     }
     dist->matrix.cols[0] = gamma_vec_muls(&dist->matrix.cols[0], buffer[0]);
@@ -208,7 +206,7 @@ static bool gammapy_load_distribution(struct gamma_distribution *dist,
 }
 
 
-static bool gammapy_write_long(long src, PyObject *obj, const char *attr)
+static bool gpy_write_long(long src, PyObject *obj, const char *attr)
 {
     PyObject *node;
     bool res;
@@ -223,7 +221,7 @@ static bool gammapy_write_long(long src, PyObject *obj, const char *attr)
 }
 
 
-static bool gammapy_write_double(double x, PyObject *obj, const char *attr)
+static bool gpy_write_double(double x, PyObject *obj, const char *attr)
 {
     PyObject *node;
     bool res;
@@ -238,10 +236,10 @@ static bool gammapy_write_double(double x, PyObject *obj, const char *attr)
 }
 
 
-static bool gammapy_steal_array(double           **ptr,
-                                const gamma_idx_t *dims,
-                                PyObject          *obj,
-                                const char        *attr)
+static bool gpy_steal_array(double           **ptr,
+                            const gamma_idx_t *dims,
+                            PyObject          *obj,
+                            const char        *attr)
 {
     const npy_intp dimens[3] = { dims->idx[0], dims->idx[1], dims->idx[2] };
     PyObject *node;
@@ -265,21 +263,21 @@ static bool gammapy_steal_array(double           **ptr,
 }
 
 
-static bool gammapy_write_results(struct gamma_results *res,
-                                  const gamma_idx_t    *dims,
-                                  PyObject             *obj)
+static bool gpy_write_results(struct gamma_results *res,
+                              const gamma_idx_t    *dims,
+                              PyObject             *obj)
 {
-    return gammapy_write_long(res->stats.total, obj, "total")
-        && gammapy_write_long(res->pass, obj, "passed")
-        && gammapy_write_double(res->stats.min, obj, "min")
-        && gammapy_write_double(res->stats.max, obj, "max")
-        && gammapy_write_double(res->stats.mean, obj, "mean")
-        && gammapy_write_double(res->stats.msqr, obj, "msqr")
-        && gammapy_steal_array(&res->dist, dims, obj, "dist");
+    return gpy_write_long(res->stats.total, obj, "total")
+        && gpy_write_long(res->pass, obj, "passed")
+        && gpy_write_double(res->stats.min, obj, "min")
+        && gpy_write_double(res->stats.max, obj, "max")
+        && gpy_write_double(res->stats.mean, obj, "mean")
+        && gpy_write_double(res->stats.msqr, obj, "msqr")
+        && gpy_steal_array(&res->dist, dims, obj, "dist");
 }
 
 
-static PyObject *gammapy_compute(PyObject *self, PyObject *args)
+static PyObject *gpy_compute(PyObject *self, PyObject *args)
 {
     PyObject *pyparms, *pyopts, *pyref, *pymeas, *pyres;
     struct gamma_params params;
@@ -294,10 +292,10 @@ static PyObject *gammapy_compute(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (!gammapy_load_params(&params, pyparms)
-     || !gammapy_load_options(&opts, pyopts)
-     || !gammapy_load_distribution(&ref, pyref)
-     || !gammapy_load_distribution(&meas, pymeas)) {
+    if (!gpy_load_params(&params, pyparms)
+     || !gpy_load_options(&opts, pyopts)
+     || !gpy_load_distribution(&ref, pyref)
+     || !gpy_load_distribution(&meas, pymeas)) {
         return NULL;
     }
 
@@ -306,7 +304,7 @@ static PyObject *gammapy_compute(PyObject *self, PyObject *args)
         return NULL;
     }
     gamma_compute(&params, &opts, &ref, &meas, &res);
-    code = gammapy_write_results(&res, &meas.dims, pyres);
+    code = gpy_write_results(&res, &meas.dims, pyres);
     PyMem_Free(res.dist);
 
     return code ? Py_None : NULL;
@@ -318,7 +316,7 @@ PyMODINIT_FUNC PyInit_cgamma(void)
     static PyMethodDef methods[] = {
         {
             .ml_name  = "compute",
-            .ml_meth  = gammapy_compute,
+            .ml_meth  = gpy_compute,
             .ml_flags = METH_VARARGS,
             .ml_doc   = "Compute the gamma index",
         },
