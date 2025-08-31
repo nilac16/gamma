@@ -10,9 +10,27 @@ struct gamma_objective {
     const struct gamma_distribution *ref;       /* Reference dose */
     double                           ratio;     /* Criteria ratio */
     double                           mdose;     /* (Normalized) measured dose */
-    double                           rprop;     /* Reference dose normalizer */
     gamma_vec_t                      origin;    /* Measured dose origin */
 };
+
+
+/** @brief Consistently evaluate the objective function given inputs
+ *  @param obj
+ *      Objective function
+ *  @param rdose
+ *      Reference dose value
+ *  @param rdiff
+ *      Displacement vector from the measured dose point (not a coordinate
+ *      vector---be certain there is not a one in the last position!)
+ *  @returns The value of the objective function for this dose, coordinate tuple
+ */
+static double gamma_objective_value(const struct gamma_objective *obj,
+                                    double                        rdose,
+                                    const gamma_vec_t            *rdiff)
+{
+    return gamma_sqr(obj->ratio * (rdose - obj->mdose))
+        + gamma_vec_dp(rdiff, rdiff);
+}
 
 
 /** @brief Evaluate the objective function at a given point
@@ -25,14 +43,13 @@ struct gamma_objective {
  */
 static double gamma_objective_evaluate(const gamma_vec_t *pos, void *data)
 {
-    struct gamma_objective *obj = data;
+    const struct gamma_objective *obj = data;
     gamma_vec_t diff;
-    double dose;
 
-    dose = gamma_distribution_interp(obj->ref, pos);
     diff = gamma_vec_sub(pos, &obj->origin);
-    return gamma_sqr(obj->ratio * (dose / obj->rprop - obj->mdose))
-        + gamma_vec_dp(&diff, &diff);
+    return gamma_objective_value(obj,
+                                 gamma_distribution_interp(obj->ref, pos),
+                                 &diff);
 }
 
 
@@ -40,11 +57,11 @@ static double gamma_objective_evaluate(const gamma_vec_t *pos, void *data)
 struct gamma {
     const struct gamma_params       *parms;     /* Gamma parameters */
     const struct gamma_options      *opts;      /* Gamma options */
-    const struct gamma_distribution *meas;      /* Measured dose */
     const struct gamma_distribution *ref;       /* Reference dose */
+    const struct gamma_distribution *meas;      /* Measured dose */
     struct gamma_results            *res;       /* Results */
-    double                           mthrsh;    /* Measured dose threshold */
     double                           rthrsh;    /* Reference dose threshold */
+    double                           mthrsh;    /* Measured dose threshold */
     size_t                           idx;       /* Current point index */
 };
 
@@ -71,10 +88,9 @@ static double gamma_pointwise(const struct gamma *gamma,
         .ref    = gamma->ref,
         .ratio  = gamma->parms->dta / gamma->parms->diff,
         .mdose  = mdose,
-        .rprop  = 1.0,
         .origin = *pos,
     };
-    struct gamma_psfunc func = {
+    const struct gamma_psfunc func = {
         .func  = gamma_objective_evaluate,
         .data  = &obj,
         .dims  = BUFLEN(bases),
@@ -104,11 +120,12 @@ static double gamma_pointwise(const struct gamma *gamma,
     obj.ratio /= dnorm;
 
     if (gamma->parms->rel) {
-        obj.rprop = gamma->meas->max / gamma->ref->max;
+        /* Normalize the measured dose value to the reference dose's range */
+        obj.mdose *= gamma->ref->max / gamma->meas->max;
     }
 
     pair.vec = *pos;
-    pair.val = gamma_sqr(obj.ratio * (rdose * obj.rprop - obj.mdose));
+    pair.val = gamma_objective_value(&obj, rdose, &(const gamma_vec_t){ 0 });
     gamma_pattern_search(&func, &pair, gamma->parms->dta, gamma->opts->shrinks);
     return sqrt(pair.val) / gamma->parms->dta;
 }

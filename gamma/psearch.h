@@ -23,7 +23,7 @@ typedef double gamma_psrch_func_t(const gamma_vec_t *pos, void *data);
 struct gamma_psfunc {
     gamma_psrch_func_t *func;   /* Function to be minimized */
     void               *data;   /* Function data */
-    int                 dims;   /* Dimensions to search */
+    int                 dims;   /* Dimensions (the amount of basis vectors) */
     const gamma_vec_t  *bases;  /* Basis vectors to be stenciled */
 };
 
@@ -38,14 +38,15 @@ struct gamma_pspair {
 /** @brief Minimize a function by pattern search
  *  @param func
  *      Function to be minimized
- *  @param init
- *      Initial value i.e. the initial coordinates and value of @p func
+ *  @param[in, out] init
+ *      Initial value i.e. the initial coordinates and value of @p func and
+ *      where the results are written
  *  @param res
  *      Initial stencil resolution
  *  @param shrinks
  *      The maximum number of times the stencil may shrink before the result is
- *      accepted
- *  @returns A pair containing the minimized value and its coordinates
+ *      accepted. This parameter may safely be negative. Runtime is at least
+ *      linearly dependent on this parameter
  */
 void gamma_pattern_search(const struct gamma_psfunc *func,
                           struct gamma_pspair       *init,
