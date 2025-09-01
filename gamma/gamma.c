@@ -5,7 +5,7 @@
 #include "gamma.h"
 #include "psearch.h"
 
-#if _OPENMP
+#if defined(_OPENMP) && _OPENMP
 #   include <threads.h>
 #   define ADD_MUTEX(name)  mtx_t name
 #   define MTX_INIT(mtx)    mtx_init(mtx, mtx_plain)

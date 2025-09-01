@@ -143,8 +143,8 @@ void gamma_distribution_foreach(const struct gamma_distribution *dist,
     gamma_vec_t pos;
     size_t n = 0;
 
-#if _OPENMP
-#   pragma omp parallel for private(pos, i, j, n)
+#if defined(_OPENMP) && _OPENMP
+#   pragma omp parallel for private(pos, n) collapse(3)
 #endif
     for (k = 0; k < dist->dims.idx[2]; k++) {
         for (j = 0; j < dist->dims.idx[1]; j++) {
