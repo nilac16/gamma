@@ -2,12 +2,12 @@
 #include "mat.h"
 
 
-const gamma_mat_t gamma_mat_identity = {
-    (const gamma_vec_t){{ 1, 0, 0, 0 }},
-    (const gamma_vec_t){{ 0, 1, 0, 0 }},
-    (const gamma_vec_t){{ 0, 0, 1, 0 }},
-    (const gamma_vec_t){{ 0, 0, 0, 1 }},
-};
+const gamma_mat_t gamma_mat_identity = {{
+    {{ 1, 0, 0, 0 }},
+    {{ 0, 1, 0, 0 }},
+    {{ 0, 0, 1, 0 }},
+    {{ 0, 0, 0, 1 }},
+}};
 
 
 /** @brief Swap two vectors

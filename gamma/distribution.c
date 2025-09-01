@@ -70,10 +70,10 @@ double gamma_distribution_at(const struct gamma_distribution *dist,
  */
 static void gamma_distribution_modf(gamma_vec_t *vec, gamma_idx_t *idx)
 {
-    idx->idx[0] = vec->vec[0];
-    idx->idx[1] = vec->vec[1];
-    idx->idx[2] = vec->vec[2];
-    idx->idx[3] = vec->vec[3];
+    idx->idx[0] = (gamma_iscal_t)vec->vec[0];
+    idx->idx[1] = (gamma_iscal_t)vec->vec[1];
+    idx->idx[2] = (gamma_iscal_t)vec->vec[2];
+    idx->idx[3] = (gamma_iscal_t)vec->vec[3];
     vec->vec[0] -= idx->idx[0];
     vec->vec[1] -= idx->idx[1];
     vec->vec[2] -= idx->idx[2];

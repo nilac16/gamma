@@ -14,7 +14,7 @@
 #   define MTX_UNLOCK(mtx)  mtx_unlock(mtx)
 
 #else
-#   define ADD_MUTEX(name)
+#   define ADD_MUTEX(name)  int _##name
 #   define MTX_INIT(mtx)
 #   define MTX_DESTROY(mtx)
 #   define MTX_LOCK(mtx)
