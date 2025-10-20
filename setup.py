@@ -5,10 +5,10 @@ import numpy
 
 class BuildExt(build_ext):
     def build_extensions(self):
-        if self.compiler.compiler_type == "msvc":
-            for ext in self.extensions:
+        for ext in self.extensions:
+            if self.compiler.compiler_type == "msvc":
                 ext.extra_compile_args += ["/std:c11", "/O2"]
-                ext.include_dirs += [numpy.get_include()]
+            ext.include_dirs += [numpy.get_include()]
         build_ext.build_extensions(self)
 
 
