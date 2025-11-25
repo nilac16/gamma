@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools", "numpy < 2"]
+requires = ["setuptools", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "gamma"
-version = "0.1"
-dependencies = ["numpy < 2"]
+version = "1.0"
+dependencies = ["numpy"]
 
 [tool.setuptools]
 packages = ["gamma"]
