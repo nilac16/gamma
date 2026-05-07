@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <tgmath.h>
 #include "gamma.h"
 #include "psearch.h"
 
@@ -144,7 +143,7 @@ static double gamma_pointwise(const struct gamma *gamma,
     pair.vec = *pos;
     pair.val = gamma_objective_value(&obj, rdose, &(const gamma_vec_t){ 0 });
     gamma_pattern_search(&func, &pair, gamma->parms->dta, gamma->opts->shrinks);
-    return sqrt(pair.val) / gamma->parms->dta;
+    return copysign(sqrt(pair.val) / gamma->parms->dta, mdose - rdose);
 }
 
 
@@ -166,10 +165,10 @@ static void gamma_iterator(const gamma_vec_t *pos,
     double value;
 
     value = gamma_pointwise(gamma, pos, dose);
-    if (value != GAMMA_SIG) {
+    if (!GAMMA_ISSIG(value)) {
         MTX_LOCK(&gamma->mtx);
-        gamma->res->pass += value < 1.0;
-        gamma_statistics_add(&gamma->res->stats, value);
+        gamma->res->pass += GAMMA_PASSES(value);
+        gamma_statistics_add(&gamma->res->stats, fabs(value));
         MTX_UNLOCK(&gamma->mtx);
     }
     if (gamma->res->dist) {

@@ -4,6 +4,7 @@
 #define GAMMA_H
 
 #include <stdbool.h>
+#include <tgmath.h>
 #include "common.h"
 #include "distribution.h"
 #include "statistics.h"
@@ -14,7 +15,25 @@ EXTERN_C_BEGIN
 /** @brief Signal value, used for points below threshold when calculating a
  *      distribution
  */
-#define GAMMA_SIG (-1.0)
+#define GAMMA_SIG (nan(""))
+
+
+/** @brief Test a point to determine if it's a thresholded signal value
+ *  @param x
+ *      Gamma index value
+ *  @returns One if @p x is the signal value, zero if not
+ */
+#define GAMMA_ISSIG(x) ((bool)isnan(x))
+
+
+/** @brief Test a point to see if it passes
+ *  @param x
+ *      Gamma value. If this is the gamma signal value then the result will very
+ *      likely be false, so test that first
+ *  @returns One if @p x passes gamma, zero if it fails (or if @p x is the
+ *      signal value)
+ */
+#define GAMMA_PASSES(x) ((bool)(fabs(x) < 1.0))
 
 
 /** @brief % dose difference normalization modes */
